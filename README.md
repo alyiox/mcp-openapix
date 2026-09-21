@@ -1,9 +1,12 @@
 # mcp-openapix
 
 [![CI](https://github.com/alyiox/mcp-openapix/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/alyiox/mcp-openapix/actions/workflows/ci.yml)
+[![PyPI](https://img.shields.io/pypi/v/mcp-openapix.svg)](https://pypi.org/project/mcp-openapix/)
 [![Python
 3.13+](https://img.shields.io/badge/python-3.13%2B-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
+
+<!-- mcp-name: io.github.alyiox/mcp-openapix -->
 
 [MCP](https://modelcontextprotocol.io) server that fronts **any** OpenAPI service behind
 four generic tools.

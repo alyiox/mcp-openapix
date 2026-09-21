@@ -1,0 +1,23 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.github.alyiox/mcp-openapix",
+  "title": "OpenAPI APIs",
+  "description": "MCP server that fronts any OpenAPI service: discover operations from its spec and call them",
+  "repository": {
+    "url": "https://github.com/alyiox/mcp-openapix",
+    "source": "github"
+  },
+  "version": "0.1.0",
+  "packages": [
+    {
+      "registryType": "pypi",
+      "registryBaseUrl": "https://pypi.org",
+      "identifier": "mcp-openapix",
+      "version": "0.1.0",
+      "runtimeHint": "uvx",
+      "transport": {
+        "type": "stdio"
+      }
+    }
+  ]
+}
