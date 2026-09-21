@@ -66,7 +66,7 @@ async def _lifespan(app: MCPServer[ServerContext]) -> AsyncIterator[ServerContex
             specs_dir=specs_dir,
         )
         logger.info(
-            "mcp-openapi ready: %d platforms, %d token helpers",
+            "mcp-openapix ready: %d platforms, %d token helpers",
             len(registry.platforms),
             len(config.token_helpers),
         )
@@ -86,7 +86,7 @@ async def _lifespan(app: MCPServer[ServerContext]) -> AsyncIterator[ServerContex
                 await task
 
 
-mcp: MCPServer[ServerContext] = MCPServer("mcp-openapi", lifespan=_lifespan)
+mcp: MCPServer[ServerContext] = MCPServer("mcp-openapix", lifespan=_lifespan)
 
 
 # Resource handlers are wrapped in pydantic's ``validate_call`` by

@@ -1,5 +1,5 @@
 [project]
-name = "mcp-openapi"
+name = "mcp-openapix"
 version = "0.1.0"
 description = "A Model Context Protocol (MCP) server that fronts any OpenAPI service: discover operations from its spec and call them, with bearer tokens supplied by pluggable helper commands."
 readme = "README.md"
@@ -42,9 +42,9 @@ dependencies = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/alyiox/mcp-openapi"
-Repository = "https://github.com/alyiox/mcp-openapi.git"
-Issues = "https://github.com/alyiox/mcp-openapi/issues"
+Homepage = "https://github.com/alyiox/mcp-openapix"
+Repository = "https://github.com/alyiox/mcp-openapix.git"
+Issues = "https://github.com/alyiox/mcp-openapix/issues"
 
 [project.optional-dependencies]
 dev = [
@@ -59,14 +59,14 @@ dev = [
 ]
 
 [project.scripts]
-mcp-openapi = "mcp_openapi.server:main"
+mcp-openapix = "mcp_openapix.server:main"
 
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/mcp_openapi"]
+packages = ["src/mcp_openapix"]
 
 [tool.uv]
 managed = true

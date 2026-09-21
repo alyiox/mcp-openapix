@@ -480,7 +480,7 @@ cli = [
 ]
 
 [[package]]
-name = "mcp-openapi"
+name = "mcp-openapix"
 version = "0.1.0"
 source = { editable = "." }
 dependencies = [

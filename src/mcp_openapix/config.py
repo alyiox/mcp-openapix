@@ -154,7 +154,7 @@ class SpecRefresh(BaseModel):
     questions: a single interval with ``0`` meaning disabled would lose the
     cadence the moment someone turned it off, and would make a typo of ``0``
     indistinguishable from a decision. ``auto=False`` stops the background sweep
-    and leaves ``mcp-openapi --refresh`` working.
+    and leaves ``mcp-openapix --refresh`` working.
 
     ``interval`` is in days -- nobody reads ``604800`` as a week -- and
     fractional, so a sub-day cadence stays expressible (``0.5`` is twelve hours).
@@ -211,7 +211,7 @@ def default_config_path() -> Path:
         base = Path(os.environ.get("USERPROFILE", str(Path.home())))
     else:
         base = Path.home()
-    return base / ".config" / "mcp-openapi" / "config.json"
+    return base / ".config" / "mcp-openapix" / "config.json"
 
 
 def default_cache_dir() -> Path:
@@ -219,13 +219,13 @@ def default_cache_dir() -> Path:
 
     Rooted at the user's home directory (``$USERPROFILE`` on Windows, ``$HOME``
     otherwise). The server caches fetched OpenAPI specs under
-    ``<root>/.cache/mcp-openapi/<platform>/<region>/<service>.json``.
+    ``<root>/.cache/mcp-openapix/<platform>/<region>/<service>.json``.
     """
     if sys.platform == "win32":
         base = Path(os.environ.get("USERPROFILE", str(Path.home())))
     else:
         base = Path.home()
-    return base / ".cache" / "mcp-openapi"
+    return base / ".cache" / "mcp-openapix"
 
 
 def load_config(path: Path | None = None) -> Config:

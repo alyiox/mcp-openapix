@@ -9,10 +9,10 @@ import httpx
 import pytest
 import respx
 
-from mcp_openapi.api_client import ApiClient, ApiClientError
-from mcp_openapi.auth import TokenProvider
-from mcp_openapi.config import Config, TokenHelperConfig
-from mcp_openapi.spec_loader import SpecRegistry
+from mcp_openapix.api_client import ApiClient, ApiClientError
+from mcp_openapix.auth import TokenProvider
+from mcp_openapix.config import Config, TokenHelperConfig
+from mcp_openapix.spec_loader import SpecRegistry
 
 
 @pytest.fixture

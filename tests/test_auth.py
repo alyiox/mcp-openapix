@@ -13,7 +13,7 @@ from pathlib import Path
 
 import pytest
 
-from mcp_openapi.auth import (
+from mcp_openapix.auth import (
     HELPER_ENV_PREFIX,
     MAX_STDOUT_BYTES,
     USERNAME_ENV,
@@ -21,7 +21,7 @@ from mcp_openapi.auth import (
     TokenProvider,
     cache_key,
 )
-from mcp_openapi.config import TokenHelperConfig
+from mcp_openapix.config import TokenHelperConfig
 
 COUNTER = "counter.txt"
 

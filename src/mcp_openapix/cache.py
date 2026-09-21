@@ -18,7 +18,7 @@ so the rules that keep the cache trustworthy are the ones in this module:
 There is deliberately no lock around the fetch. Correctness rests on the two
 rules above, not on mutual exclusion: two processes installing the same
 validated document write the same bytes. What a lock would buy is avoided
-duplicate downloads, and :mod:`mcp_openapi.refresh` buys that with a
+duplicate downloads, and :mod:`mcp_openapix.refresh` buys that with a
 lease instead — without ever making a caller wait on someone else's download.
 
 The in-process ``asyncio`` serialization that prevents redundant fetches within

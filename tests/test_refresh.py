@@ -10,9 +10,9 @@ import httpx
 import pytest
 import respx
 
-from mcp_openapi import cache, refresh
-from mcp_openapi.config import Config
-from mcp_openapi.spec_loader import SpecRegistry, build_registry
+from mcp_openapix import cache, refresh
+from mcp_openapix.config import Config
+from mcp_openapix.spec_loader import SpecRegistry, build_registry
 
 _US_URL = "https://api.example.com/demo/swagger/v1/swagger.json"
 _EU_URL = "https://api-eu.example.com/demo/swagger/v1/swagger.json"

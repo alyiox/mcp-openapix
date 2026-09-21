@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import time
 
-from mcp_openapi.responses import ResponseCache, read_cached_response
+from mcp_openapix.responses import ResponseCache, read_cached_response
 
 
 def test_cache_store_and_get() -> None:

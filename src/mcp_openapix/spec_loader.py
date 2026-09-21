@@ -11,7 +11,7 @@ has its own swagger file, loaded lazily on first tool use: a cache miss
 downloads the spec from the deployment (unauthenticated) and writes it to the
 local cache. Concurrent first-uses of the same spec are serialized by a per-key
 ``asyncio.Lock`` (so it is fetched once per process); cross-process safety and
-atomic writes live in :mod:`mcp_openapi.cache`.
+atomic writes live in :mod:`mcp_openapix.cache`.
 """
 
 from __future__ import annotations

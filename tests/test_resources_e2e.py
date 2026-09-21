@@ -17,9 +17,9 @@ import pytest
 from mcp.client.session import ClientSession
 from mcp.shared.memory import create_client_server_memory_streams
 
-from mcp_openapi import server as server_mod
-from mcp_openapi.config import Config
-from mcp_openapi.responses import ResponseCache
+from mcp_openapix import server as server_mod
+from mcp_openapix.config import Config
+from mcp_openapix.responses import ResponseCache
 
 
 @asynccontextmanager

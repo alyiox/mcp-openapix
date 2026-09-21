@@ -8,7 +8,7 @@ from pathlib import Path
 import pytest
 from pydantic import ValidationError
 
-from mcp_openapi.config import (
+from mcp_openapix.config import (
     Config,
     ConfigError,
     get_deployment,

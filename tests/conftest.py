@@ -11,9 +11,9 @@ import httpx
 import pytest
 import pytest_asyncio
 
-from mcp_openapi.auth import TokenProvider
-from mcp_openapi.config import Config
-from mcp_openapi.spec_loader import SpecRegistry, build_registry
+from mcp_openapix.auth import TokenProvider
+from mcp_openapix.config import Config
+from mcp_openapix.spec_loader import SpecRegistry, build_registry
 
 
 def echo_helper(text: str) -> dict:

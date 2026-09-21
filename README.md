@@ -1,6 +1,6 @@
-# mcp-openapi
+# mcp-openapix
 
-[![CI](https://github.com/alyiox/mcp-openapi/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/alyiox/mcp-openapi/actions/workflows/ci.yml)
+[![CI](https://github.com/alyiox/mcp-openapix/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/alyiox/mcp-openapix/actions/workflows/ci.yml)
 [![Python
 3.13+](https://img.shields.io/badge/python-3.13%2B-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
@@ -32,17 +32,17 @@ Set up your config (see [Configuration](#configuration)), then run the server:
 
 ```bash
 # Run directly with uvx (no clone needed)
-npx -y @modelcontextprotocol/inspector@latest uvx mcp-openapi
+npx -y @modelcontextprotocol/inspector@latest uvx mcp-openapix
 ```
 
 ```bash
 # Or run from source
-npx -y @modelcontextprotocol/inspector@latest uv run mcp-openapi
+npx -y @modelcontextprotocol/inspector@latest uv run mcp-openapix
 ```
 
 ## Configuration
 
-`config.json` MUST live at `~/.config/mcp-openapi/config.json`
+`config.json` MUST live at `~/.config/mcp-openapix/config.json`
 (`%USERPROFILE%\.config\…` on Windows). `config.example.json` is a full template.
 
 ```json
@@ -165,7 +165,7 @@ Where a spec does declare an `operationId`, that value wins.
 
 Specs are **not** bundled. Each deployment's document is fetched on demand — an
 unauthenticated `GET` — and cached under
-`~/.cache/mcp-openapi/{platform}/{region}/{service}.json`.
+`~/.cache/mcp-openapix/{platform}/{region}/{service}.json`.
 
 A document MUST declare at least one operation before it is installed, so a deployment
 answering `200` with an error body cannot replace a working snapshot with one that
@@ -176,7 +176,7 @@ Cached specs refresh in the background: once at startup, then every
 works:
 
 ```bash
-uvx mcp-openapi --refresh
+uvx mcp-openapix --refresh
 ```
 
 ## MCP resources
@@ -192,12 +192,12 @@ a short-lived token.
 ## Tokens at rest
 
 Tokens are cached in memory and, when expiry metadata is available, under
-`~/.cache/mcp-openapi/tokens/` (mode `0600`) keyed by the token-helper declaration
+`~/.cache/mcp-openapix/tokens/` (mode `0600`) keyed by the token-helper declaration
 and username. This lets client sessions share a login without spawning a helper each.
 A `401` retires the cached token so the next call obtains a fresh one. To clear them all:
 
 ```bash
-uvx mcp-openapi --logout
+uvx mcp-openapix --logout
 ```
 
 ## MCP host examples
@@ -207,7 +207,7 @@ uvx mcp-openapi --logout
 ```json
 {
   "mcpServers": {
-    "openapi": { "command": "uvx", "args": ["mcp-openapi"] }
+    "openapi": { "command": "uvx", "args": ["mcp-openapix"] }
   }
 }
 ```
@@ -219,7 +219,7 @@ uvx mcp-openapi --logout
 ```toml
 [mcp_servers.openapi]
 command = "uvx"
-args = ["mcp-openapi"]
+args = ["mcp-openapix"]
 ```
 
 </details>

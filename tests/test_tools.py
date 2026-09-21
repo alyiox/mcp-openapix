@@ -6,15 +6,15 @@ import httpx
 import pytest
 import respx
 
-from mcp_openapi.api_client import ApiClient
-from mcp_openapi.auth import TokenProvider
-from mcp_openapi.config import Config, ConfigError
-from mcp_openapi.responses import ResponseCache, read_cached_response
-from mcp_openapi.spec_loader import SpecRegistry
-from mcp_openapi.tools.call_endpoint import call_endpoint
-from mcp_openapi.tools.describe_endpoint import describe_endpoint
-from mcp_openapi.tools.list_endpoints import list_endpoints
-from mcp_openapi.tools.list_platforms import list_platforms
+from mcp_openapix.api_client import ApiClient
+from mcp_openapix.auth import TokenProvider
+from mcp_openapix.config import Config, ConfigError
+from mcp_openapix.responses import ResponseCache, read_cached_response
+from mcp_openapix.spec_loader import SpecRegistry
+from mcp_openapix.tools.call_endpoint import call_endpoint
+from mcp_openapix.tools.describe_endpoint import describe_endpoint
+from mcp_openapix.tools.list_endpoints import list_endpoints
+from mcp_openapix.tools.list_platforms import list_platforms
 
 
 def test_list_platforms_returns_regions_and_envs(

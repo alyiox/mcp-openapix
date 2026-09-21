@@ -8,8 +8,8 @@ import httpx
 import pytest
 import respx
 
-from mcp_openapi.config import Config
-from mcp_openapi.spec_loader import (
+from mcp_openapix.config import Config
+from mcp_openapix.spec_loader import (
     SpecError,
     SpecRegistry,
     build_registry,
