@@ -1,0 +1,41 @@
+# Project / local
+.env
+.env.local
+.env.*.local
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Virtual environment (uv)
+.venv/
+env/
+venv/
+
+# Build / packaging
+build/
+dist/
+*.egg-info/
+*.egg
+
+# Test / coverage (pytest, pytest-cov)
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+cover/
+
+# Ruff
+.ruff_cache/
+
+# mypy
+.mypy_cache/
+
+# PyPI (credentials)
+.pypirc
+
+# AI agent
+*-progress.md
+.claude/settings.local.json

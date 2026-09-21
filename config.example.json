@@ -1,0 +1,86 @@
+{
+  "response_cache_ttl": 3600,
+  "truncate_threshold": 1024,
+  "spec_refresh": { "auto": true, "interval": 7 },
+
+  "headers": {
+    "accept": "application/json"
+  },
+
+  "defaults": {
+    "platform": "acme",
+    "region": "us",
+    "service": "items",
+    "env": "prod"
+  },
+
+  "platforms": {
+    "acme": {
+      "regions": {
+        "us": {
+          "services": {
+            "token_helper": "us",
+            "items": {
+              "desc": "Catalogue and inventory API",
+              "spec_path": "/swagger/v1/swagger.json",
+              "canonical_env": "prod",
+              "envs": {
+                "prod": { "url": "https://api.example.com/items" },
+                "dev": { "url": "https://api-dev.example.com/items" }
+              }
+            },
+            "reports": {
+              "desc": "Asynchronous report generation",
+              "spec_path": "/openapi.json",
+              "canonical_env": "prod",
+              "envs": {
+                "prod": { "url": "https://api.example.com/reports" }
+              }
+            }
+          }
+        },
+        "eu": {
+          "token_helper": "acme-eu",
+          "services": {
+            "items": {
+              "spec_path": "/swagger/v1/swagger.json",
+              "canonical_env": "prod",
+              "envs": {
+                "prod": { "url": "https://api-eu.example.com/items" }
+              }
+            }
+          }
+        }
+      }
+    },
+
+    "public": {
+      "regions": {
+        "us": {
+          "services": {
+            "status": {
+              "desc": "Unauthenticated status API",
+              "spec_path": "/openapi.json",
+              "canonical_env": "prod",
+              "envs": {
+                "prod": { "url": "https://status.example.com" }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+
+  "token_helpers": {
+    "us": {
+      "command": "gcloud",
+      "args": ["auth", "print-access-token"]
+    },
+    "acme-eu": {
+      "command": "uvx",
+      "args": ["acme-token-helper", "--region", "eu"],
+      "timeout": 90
+    }
+  }
+}
