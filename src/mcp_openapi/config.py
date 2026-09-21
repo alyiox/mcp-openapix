@@ -13,6 +13,7 @@ from __future__ import annotations
 import json
 import os
 import sys
+from collections.abc import ItemsView, Iterator
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Annotated, Any
@@ -98,18 +99,20 @@ class ServicesConfig(BaseModel):
         return obj
 
     def __getitem__(self, name: str) -> ServiceConfig:
-        return self.__pydantic_extra__[name]
+        return (self.__pydantic_extra__ or {})[name]
 
     def __contains__(self, name: object) -> bool:
         return name in (self.__pydantic_extra__ or {})
 
-    def __iter__(self):
+    # Iterating service names is the point of this model, so the mapping
+    # signature deliberately replaces pydantic's field iteration.
+    def __iter__(self) -> Iterator[str]:  # pyright: ignore[reportIncompatibleMethodOverride]
         return iter(self.__pydantic_extra__ or {})
 
     def __len__(self) -> int:
         return len(self.__pydantic_extra__ or {})
 
-    def items(self):
+    def items(self) -> ItemsView[str, ServiceConfig]:
         return (self.__pydantic_extra__ or {}).items()
 
 
