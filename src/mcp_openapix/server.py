@@ -9,6 +9,7 @@ import sys
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager, suppress
 from dataclasses import dataclass
+from importlib.metadata import version
 from pathlib import Path
 from typing import Annotated, Any
 
@@ -86,7 +87,12 @@ async def _lifespan(app: MCPServer[ServerContext]) -> AsyncIterator[ServerContex
                 await task
 
 
-mcp: MCPServer[ServerContext] = MCPServer("mcp-openapix", lifespan=_lifespan)
+mcp: MCPServer[ServerContext] = MCPServer(
+    "mcp-openapix",
+    title="OpenAPI Services",
+    version=version("mcp-openapix"),
+    lifespan=_lifespan,
+)
 
 
 # Resource handlers are wrapped in pydantic's ``validate_call`` by
