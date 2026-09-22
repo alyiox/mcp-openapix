@@ -531,6 +531,9 @@ def _logout() -> int:
 
 
 def main() -> None:
+    if "--version" in sys.argv[1:] or "-V" in sys.argv[1:]:
+        print(f"mcp-openapix {version('mcp-openapix')}")
+        return
     if "--refresh" in sys.argv[1:]:
         raise SystemExit(_refresh_now())
     if "--logout" in sys.argv[1:]:
