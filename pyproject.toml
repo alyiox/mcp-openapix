@@ -1,6 +1,6 @@
 [project]
 name = "mcp-openapix"
-version = "0.1.0"
+version = "0.1.1"
 description = "A Model Context Protocol (MCP) server that fronts any OpenAPI service: discover operations from its spec and call them, with bearer tokens supplied by pluggable helper commands."
 readme = "README.md"
 license = "MIT"
