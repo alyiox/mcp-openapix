@@ -138,7 +138,7 @@ Makes every tool argument optional: a call falls back to `defaults.platform`, `.
 
 | Field | Default | Notes |
 |---|---|---|
-| `truncate_threshold` | `1024` | Response bytes returned inline before truncating to a preview |
+| `truncate_threshold` | `4096` | Response bytes returned inline before truncating to a preview |
 | `response_cache_ttl` | `3600` | Seconds a truncated body stays readable at its resource URI |
 | `spec_refresh` | `{"auto": true, "interval": 7}` | Background spec refresh; `interval` is days and MAY be fractional |
 

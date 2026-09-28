@@ -182,7 +182,7 @@ class Config(BaseModel):
     token_helpers: dict[str, TokenHelperConfig] = Field(default_factory=dict)
     headers: dict[str, str] = Field(default_factory=dict)
     response_cache_ttl: int = Field(default=3600, ge=0)
-    truncate_threshold: int = Field(default=1024, gt=0)
+    truncate_threshold: int = Field(default=4096, gt=0)
     spec_refresh: SpecRefresh = Field(default_factory=SpecRefresh)
 
 
