@@ -21,7 +21,7 @@ from pydantic import Field, SkipValidation
 from . import refresh
 from .api_client import ApiClient
 from .auth import TokenProvider
-from .config import Config, default_cache_dir, load_config
+from .config import Config, ConfigError, default_cache_dir, load_config
 from .responses import ResponseCache, read_cached_response
 from .spec_loader import SpecRegistry, build_registry
 from .tools.call_endpoint import call_endpoint as _call_endpoint
@@ -150,7 +150,8 @@ def request_curl(request_id: str, ctx: ResourceContext) -> str:
     name="list_platforms",
     description=(
         "[OpenAPI] List platforms with their served regions, services, "
-        "envs, and optional service descriptions."
+        "envs, and optional service descriptions, plus any platform or "
+        "config file that failed to load and why."
     ),
     annotations=ToolAnnotations(read_only_hint=True, open_world_hint=False),
 )
@@ -519,6 +520,30 @@ def _refresh_now() -> int:
     return 1 if any(row["status"] == "error" for row in rows) else 0
 
 
+def _check_config() -> int:
+    """Validate config.json and every drop-in, and report without starting.
+
+    A restart of the MCP host is a slow way to find a stray comma; this is the
+    fast one.
+    """
+    # Every problem is printed below; the loader's own warnings would repeat it.
+    logging.getLogger("mcp_openapix.config").setLevel(logging.ERROR)
+    try:
+        config = load_config()
+    except ConfigError as e:
+        print(f"error: {e}")
+        return 1
+    for name in sorted(config.platforms):
+        print(f"ok     {name}")
+    for name, error in sorted(config.platform_errors.items()):
+        print(f"error  {name}: {error}")
+    for file, error in sorted(config.file_errors.items()):
+        print(f"error  {file}: {error}")
+    for setting, earlier, later in config.overrides:
+        print(f"override  {setting}: {earlier} -> {later}")
+    return 1 if config.platform_errors or config.file_errors else 0
+
+
 def _logout() -> int:
     """Wipe every cached token.
 
@@ -534,6 +559,8 @@ def main() -> None:
     if "--version" in sys.argv[1:] or "-V" in sys.argv[1:]:
         print(f"mcp-openapix {version('mcp-openapix')}")
         return
+    if "--check-config" in sys.argv[1:]:
+        raise SystemExit(_check_config())
     if "--refresh" in sys.argv[1:]:
         raise SystemExit(_refresh_now())
     if "--logout" in sys.argv[1:]:

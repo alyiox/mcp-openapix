@@ -5,12 +5,22 @@ Schema: platform → region → services → service → env. A separate top-lev
 MAY name one, and the most specific wins. The per-service base URL lives in the
 env.
 
+An optional ``config.d/`` beside ``config.json`` holds drop-in files, in the
+style of an nginx ``conf.d``: each may declare anything ``config.json`` may, and
+they merge over it in sorted order as if pasted into one file -- objects merge
+recursively, a later scalar or list replaces an earlier one. The point is blast
+radius: a stray comma while editing one platform otherwise takes down every
+platform, because a parse failure precedes per-platform validation. Split out, a
+file that fails to parse costs only what it declares, and a platform that fails
+validation costs only itself.
+
 See ``docs/token-protocol.md`` for the helper contract.
 """
 
 from __future__ import annotations
 
 import json
+import logging
 import os
 import sys
 from collections.abc import ItemsView, Iterator
@@ -23,12 +33,18 @@ from pydantic import (
     ConfigDict,
     Field,
     HttpUrl,
+    PrivateAttr,
     StrictBool,
     StrictFloat,
     StrictInt,
     ValidationError,
     model_validator,
 )
+
+logger = logging.getLogger(__name__)
+
+#: Directory beside config.json holding drop-in config files.
+CONFIG_D = "config.d"
 
 #: Default seconds a token helper may run before its process group is killed.
 HELPER_TIMEOUT_SECONDS = 60.0
@@ -173,7 +189,15 @@ class SpecRefresh(BaseModel):
 
 
 class Config(BaseModel):
-    """Top-level config.json schema."""
+    """Top-level config.json schema, plus what went wrong while loading it.
+
+    ``platform_errors`` maps a platform that failed to load to the loader's
+    message; the platform itself is absent from ``platforms``. ``file_errors``
+    maps a drop-in that could not be read at all to why -- a separate case,
+    because what an unreadable file declares is unknowable. ``overrides`` lists
+    ``(setting, earlier file, later file)`` for every value a later file
+    replaced: allowed, but worth being able to see.
+    """
 
     model_config = ConfigDict(extra="forbid")
 
@@ -184,6 +208,22 @@ class Config(BaseModel):
     response_cache_ttl: int = Field(default=3600, ge=0)
     truncate_threshold: int = Field(default=4096, gt=0)
     spec_refresh: SpecRefresh = Field(default_factory=SpecRefresh)
+
+    _platform_errors: dict[str, str] = PrivateAttr(default_factory=dict)
+    _file_errors: dict[str, str] = PrivateAttr(default_factory=dict)
+    _overrides: list[tuple[str, str, str]] = PrivateAttr(default_factory=list)
+
+    @property
+    def platform_errors(self) -> dict[str, str]:
+        return self._platform_errors
+
+    @property
+    def file_errors(self) -> dict[str, str]:
+        return self._file_errors
+
+    @property
+    def overrides(self) -> list[tuple[str, str, str]]:
+        return self._overrides
 
 
 @dataclass(frozen=True)
@@ -229,36 +269,217 @@ def default_cache_dir() -> Path:
 
 
 def load_config(path: Path | None = None) -> Config:
-    """Load and validate the config.json file.
+    """Load and validate config.json merged with any ``config.d/*.json`` drop-ins.
 
     Args:
         path: explicit config path; falls back to ``default_config_path()``.
 
     Raises:
-        ConfigError: if the file is missing, invalid JSON, fails schema
-            validation, or has cross-field inconsistencies.
+        ConfigError: if config.json is missing or unreadable, a setting outside
+            ``platforms`` fails validation (the message names the file that set
+            it), or defaults are inconsistent. A drop-in that cannot be read, or
+            a platform that fails validation, is recorded in ``file_errors`` /
+            ``platform_errors`` instead and the rest load.
     """
     cfg_path = path or default_config_path()
     if not cfg_path.is_file():
         raise ConfigError(f"config file not found: {cfg_path}")
 
-    try:
-        raw = json.loads(cfg_path.read_text(encoding="utf-8"))
-    except json.JSONDecodeError as e:
-        raise ConfigError(f"config file is not valid JSON: {cfg_path}: {e}") from e
+    merged: dict[str, Any] = {}
+    owners: dict[tuple[str, ...], Path] = {}
+    overrides: list[tuple[str, str, str]] = []
+    _deep_merge(
+        merged,
+        _read_config_file(cfg_path),
+        source=cfg_path,
+        owners=owners,
+        overrides=overrides,
+    )
+    # Each drop-in is read on its own before any of it is merged, so an
+    # unreadable one costs exactly what it declares -- the reason the directory
+    # exists.
+    file_errors: dict[str, str] = {}
+    for extra in _drop_in_files(cfg_path):
+        try:
+            block = _read_config_file(extra)
+        except ConfigError as e:
+            file_errors[str(extra)] = str(e)
+            continue
+        _deep_merge(merged, block, source=extra, owners=owners, overrides=overrides)
 
+    raw_platforms = merged.pop("platforms", {})
+    if not isinstance(raw_platforms, dict):
+        files = _files_for(("platforms",), owners)
+        raise ConfigError(
+            f"config failed validation: {files}: platforms: must be an object"
+        )
     try:
-        config = Config.model_validate(raw)
+        config = Config.model_validate(merged)
     except ValidationError as e:
-        raise ConfigError(f"config file failed validation: {cfg_path}: {e}") from e
-
-    _validate_defaults(config)
+        files = sorted(
+            {
+                _files_for(tuple(str(p) for p in err["loc"]), owners)
+                for err in e.errors()
+            }
+        )
+        raise ConfigError(f"config failed validation: {', '.join(files)}: {e}") from e
+    config.file_errors.update(file_errors)
+    config.overrides.extend(overrides)
+    # Before the platforms: every one of them falls back to this helper, so a
+    # bad name would otherwise surface as each platform failing on its own.
     _validate_token_helpers(config)
+    _load_platforms(config, raw_platforms, owners=owners)
+
+    _drop_defaults_of_failed_platform(config)
+    _validate_defaults(config)
+
+    for file, message in config.file_errors.items():
+        logger.warning("config file skipped: %s: %s", file, message)
+    for message in config.platform_errors.values():
+        logger.warning("%s", message)
     return config
 
 
+def _drop_in_files(base: Path) -> list[Path]:
+    """``*.json`` directly inside ``config.d/``, sorted for a stable merge order.
+
+    Only that exact glob: a ``.bak`` or an editor swap file beside a real config
+    is litter, and silently merging one would be worse than ignoring it.
+    """
+    directory = base.parent / CONFIG_D
+    if not directory.is_dir():
+        return []
+    return sorted(p for p in directory.glob("*.json") if p.is_file())
+
+
+def _read_config_file(path: Path) -> dict[str, Any]:
+    try:
+        raw = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, UnicodeDecodeError) as e:
+        raise ConfigError(f"config file is not readable: {path}: {e}") from e
+    except json.JSONDecodeError as e:
+        raise ConfigError(f"config file is not valid JSON: {path}: {e}") from e
+    if not isinstance(raw, dict):
+        raise ConfigError(f"config file must contain a JSON object: {path}")
+    return raw
+
+
+def _deep_merge(
+    merged: dict[str, Any],
+    block: dict[str, Any],
+    *,
+    source: Path,
+    owners: dict[tuple[str, ...], Path],
+    overrides: list[tuple[str, str, str]],
+    at: tuple[str, ...] = (),
+) -> None:
+    """Merge ``block`` into ``merged`` as if the files were pasted in order.
+
+    Objects merge key by key; anything else replaces what was there. ``owners``
+    records the file that set each non-object value, so an error or an
+    override can name it.
+    """
+    for key, value in block.items():
+        path = (*at, key)
+        current = merged.get(key)
+        if isinstance(value, dict) and isinstance(current, dict):
+            _deep_merge(
+                current,
+                value,
+                source=source,
+                owners=owners,
+                overrides=overrides,
+                at=path,
+            )
+            continue
+        if key in merged:
+            replaced = [p for p in owners if p[: len(path)] == path]
+            earlier_files = sorted({owners.pop(p) for p in replaced})
+            # Restating the same value is not an override worth reporting.
+            if current != value:
+                for earlier in earlier_files:
+                    overrides.append((".".join(path), str(earlier), str(source)))
+        if isinstance(value, dict):
+            merged[key] = {}
+            _deep_merge(
+                merged[key],
+                value,
+                source=source,
+                owners=owners,
+                overrides=overrides,
+                at=path,
+            )
+            # An empty object still has to be traceable to its file.
+            if not value:
+                owners[path] = source
+        else:
+            merged[key] = value
+            owners[path] = source
+
+
+def _files_for(path: tuple[str, ...], owners: dict[tuple[str, ...], Path]) -> str:
+    """The files that set anything at or under ``path``, or that ``path`` is under."""
+    files = {
+        str(file)
+        for owned, file in owners.items()
+        if owned[: len(path)] == path or path[: len(owned)] == owned
+    }
+    return ", ".join(sorted(files))
+
+
+def _load_platforms(
+    config: Config,
+    raw_platforms: dict[str, Any],
+    *,
+    owners: dict[tuple[str, ...], Path],
+) -> None:
+    """Validate platforms one by one into ``config``.
+
+    Anything wrong with a platform -- its shape, or a token helper it names
+    that no file declares -- costs only that platform.
+    """
+    for name, raw_platform in raw_platforms.items():
+        try:
+            config.platforms[name] = PlatformConfig.model_validate(raw_platform)
+            _validate_platform_token_helpers(config, name)
+        except (ValidationError, ConfigError) as e:
+            config.platforms.pop(name, None)
+            config.platform_errors[name] = (
+                f"platform {name!r} failed to load from "
+                f"{_files_for(('platforms', name), owners)}: {e}"
+                f"{_unreadable_hint(config)}; fix it and restart the server"
+            )
+
+
+def _unreadable_hint(config: Config) -> str:
+    """Name the skipped drop-ins, which may hold what a lookup was missing."""
+    if not config.file_errors:
+        return ""
+    return (
+        f"; {len(config.file_errors)} config file(s) could not be read: "
+        f"{', '.join(sorted(config.file_errors))}"
+    )
+
+
+def _drop_defaults_of_failed_platform(config: Config) -> None:
+    """Unset the defaults that point into a platform that failed to load.
+
+    The failure is already reported; rejecting the whole config over a default
+    would bring back the blast radius the per-platform isolation removes.
+    """
+    defaults = config.defaults
+    if defaults.platform is None or defaults.platform not in config.platform_errors:
+        return
+    logger.warning(
+        "defaults.platform=%r failed to load; ignoring defaults.platform, "
+        ".region, .service and .env",
+        defaults.platform,
+    )
+    defaults.platform = defaults.region = defaults.service = defaults.env = None
+
+
 def _validate_token_helpers(config: Config) -> None:
-    """Check that every configured deployment binds to a real helper."""
+    """Check that the default helper exists; platforms are checked as merged."""
     if (
         config.defaults.token_helper is not None
         and config.defaults.token_helper not in config.token_helpers
@@ -268,11 +489,13 @@ def _validate_token_helpers(config: Config) -> None:
             f"token_helpers (configured: {sorted(config.token_helpers)})"
         )
 
-    for platform, platform_cfg in config.platforms.items():
-        for region, region_cfg in platform_cfg.regions.items():
-            for service, svc_cfg in region_cfg.services.items():
-                for env in svc_cfg.envs:
-                    resolve_token_helper_name(config, platform, region, service, env)
+
+def _validate_platform_token_helpers(config: Config, platform: str) -> None:
+    """Check that every deployment of one platform binds to a real helper."""
+    for region, region_cfg in config.platforms[platform].regions.items():
+        for service, svc_cfg in region_cfg.services.items():
+            for env in svc_cfg.envs:
+                resolve_token_helper_name(config, platform, region, service, env)
 
 
 def _validate_defaults(config: Config) -> None:
@@ -319,6 +542,23 @@ def _validate_defaults(config: Config) -> None:
             )
 
 
+def get_platform(config: Config, platform: str) -> PlatformConfig:
+    """Return a platform's config, or raise saying why it is not there.
+
+    A platform that failed to load raises the loader's own message; an unknown
+    one names the configured platforms and any drop-in that could not be read,
+    since the platform may be declared in it.
+    """
+    if platform in config.platforms:
+        return config.platforms[platform]
+    if platform in config.platform_errors:
+        raise ConfigError(config.platform_errors[platform])
+    raise ConfigError(
+        f"platform {platform!r} not configured "
+        f"(configured: {sorted(config.platforms)}){_unreadable_hint(config)}"
+    )
+
+
 def get_deployment(
     config: Config, platform: str, region: str, service: str, env: str
 ) -> ResolvedDeployment:
@@ -329,12 +569,7 @@ def get_deployment(
     listing available options when any component of the tuple is not
     configured.
     """
-    if platform not in config.platforms:
-        raise ConfigError(
-            f"platform {platform!r} not configured "
-            f"(configured: {sorted(config.platforms)})"
-        )
-    platform_cfg = config.platforms[platform]
+    platform_cfg = get_platform(config, platform)
     if region not in platform_cfg.regions:
         raise ConfigError(
             f"region {region!r} not configured under platform {platform!r} "
@@ -440,12 +675,7 @@ def spec_source_url(
     swagger endpoints require no bearer token. Raises ``ConfigError`` when any
     component of the tuple is not configured.
     """
-    if platform not in config.platforms:
-        raise ConfigError(
-            f"platform {platform!r} not configured "
-            f"(configured: {sorted(config.platforms)})"
-        )
-    platform_cfg = config.platforms[platform]
+    platform_cfg = get_platform(config, platform)
     if region not in platform_cfg.regions:
         raise ConfigError(
             f"region {region!r} not configured under platform {platform!r} "

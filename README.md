@@ -142,6 +142,53 @@ Makes every tool argument optional: a call falls back to `defaults.platform`, `.
 | `response_cache_ttl` | `3600` | Seconds a truncated body stays readable at its resource URI |
 | `spec_refresh` | `{"auto": true, "interval": 7}` | Background spec refresh; `interval` is days and MAY be fractional |
 
+### Splitting the config
+
+A stray comma while editing one platform takes down every platform: a parse failure
+precedes per-platform validation. The config MAY therefore be split into drop-in files
+under `config.d/`, in the style of an nginx `conf.d`. The recommended layout keeps
+server-wide settings in `config.json` and gives each platform its own file, named after
+it:
+
+```
+~/.config/mcp-openapix/
+├── config.json      # defaults, headers, token_helpers, top-level options
+└── config.d/
+    ├── acme.json    # {"platforms": {"acme": …}}
+    └── public.json  # {"platforms": {"public": …}}
+```
+
+A typo then costs one platform, and a platform can be handed over, or removed, as a
+single file. Token helpers stay in `config.json` because they are usually shared across
+platforms; a helper only one platform uses MAY live beside it in that platform's file.
+
+The layout is a convention, not a rule:
+
+- `config.json` is read first, then every `*.json` directly in `config.d/` in sorted
+  order. Subdirectories, `.bak` and editor swap files are ignored; no `config.d/` means
+  no change in behavior.
+- A drop-in MAY declare anything `config.json` may, and `config.json` MAY be nearly
+  empty.
+- Files merge as if pasted into one config in that order: objects merge key by key, and
+  a later scalar or list replaces the earlier one. A later file can therefore override a
+  single `envs.prod.url` or one `defaults` field.
+
+A file that fails to parse costs **only what it declares**; the rest keep working. A
+malformed platform, in any file, MUST NOT stop the others loading, and neither does a
+missing token helper it names: its error lists any files that were skipped, since the
+helper may be declared in one. `list_platforms` shows a platform that failed with no
+regions and the loader's `error`, and a skipped file as `{"file", "error"}`; calling
+into a failed platform returns the same message. Defaults that point into a failed
+platform are ignored. An invalid setting outside `platforms` still stops the server, and
+the message names the file that set it.
+
+A fix needs a restart. Check the config first, without starting the server; it also
+lists every value a later file overrode:
+
+```bash
+uvx mcp-openapix --check-config
+```
+
 ## Tools
 
 | Tool | Purpose |

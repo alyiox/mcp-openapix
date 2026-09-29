@@ -175,8 +175,9 @@ def test_unresolvable_auth_is_reported_at_load(
     config_dict["token_helpers"] = {"other": config_dict["token_helpers"]["us"]}
     p = tmp_path / "config.json"
     p.write_text(json.dumps(config_dict), encoding="utf-8")
-    with pytest.raises(ConfigError, match="token helper 'us'"):
-        load_config(p)
+    cfg = load_config(p)
+    assert "demo" not in cfg.platforms
+    assert "token helper 'us'" in cfg.platform_errors["demo"]
 
 
 def test_unknown_auth_reference_is_reported_at_load(
@@ -185,7 +186,18 @@ def test_unknown_auth_reference_is_reported_at_load(
     config_dict["platforms"]["demo"]["token_helper"] = "nope"
     p = tmp_path / "config.json"
     p.write_text(json.dumps(config_dict), encoding="utf-8")
+    cfg = load_config(p)
+    assert "token helper 'nope'" in cfg.platform_errors["demo"]
     with pytest.raises(ConfigError, match="token helper 'nope'"):
+        get_deployment(cfg, "demo", "us", "api", "prod")
+
+
+def test_unknown_default_helper_is_fatal(tmp_path: Path, config_dict: dict) -> None:
+    """Every platform falls back to it, so it is not one platform's problem."""
+    config_dict["defaults"]["token_helper"] = "nope"
+    p = tmp_path / "config.json"
+    p.write_text(json.dumps(config_dict), encoding="utf-8")
+    with pytest.raises(ConfigError, match="defaults.token_helper='nope'"):
         load_config(p)
 
 

@@ -20,6 +20,11 @@ def list_platforms(
     ``{"envs": [...], "desc": "..."}``. ``desc`` is omitted when unset.
     An empty services dict means the platform is known in that region but no
     service is configured for it in ``config.json``.
+
+    Without a ``region`` filter, a platform that failed to load is listed with
+    no regions and the loader's ``error``, and a ``config.d/`` file that could
+    not be read at all is listed as ``{"file": ..., "error": ...}`` -- its
+    platforms are unknowable, but the reader still needs to know it failed.
     """
     out: list[dict[str, Any]] = []
     for name in registry.platform_names():
@@ -39,4 +44,9 @@ def list_platforms(
                     services_payload[svc_name] = entry
             regions_payload.append({"name": r, "services": services_payload})
         out.append({"name": name, "regions": regions_payload})
+    if region is None:
+        for name, error in sorted(config.platform_errors.items()):
+            out.append({"name": name, "regions": [], "error": error})
+        for file, error in sorted(config.file_errors.items()):
+            out.append({"file": file, "error": error})
     return out

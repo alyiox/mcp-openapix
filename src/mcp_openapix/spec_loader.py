@@ -78,6 +78,8 @@ class SpecRegistry:
 
     def get_platform(self, name: str) -> PlatformEntry:
         if name not in self.platforms:
+            if name in self.config.platform_errors:
+                raise SpecError(self.config.platform_errors[name])
             raise SpecError(
                 f"platform {name!r} not in manifest (known: {sorted(self.platforms)})"
             )

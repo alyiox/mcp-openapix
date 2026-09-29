@@ -37,6 +37,23 @@ def test_list_platforms_region_filter_drops_non_served(
     assert result == []
 
 
+def test_list_platforms_reports_what_failed_to_load(
+    config: Config, registry: SpecRegistry
+) -> None:
+    config.platform_errors["broken"] = "platform 'broken' failed to load"
+    config.file_errors["/cfg/config.d/bad.json"] = "not valid JSON"
+    result = list_platforms(config=config, registry=registry)
+    assert result[1:] == [
+        {"name": "broken", "regions": [], "error": "platform 'broken' failed to load"},
+        {"file": "/cfg/config.d/bad.json", "error": "not valid JSON"},
+    ]
+    # A failed platform serves no region, so a region filter hides it.
+    assert all(
+        "error" not in p
+        for p in list_platforms(config=config, registry=registry, region="us")
+    )
+
+
 async def test_list_endpoints_uses_default_platform(
     config: Config, registry: SpecRegistry
 ) -> None:
