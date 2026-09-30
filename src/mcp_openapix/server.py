@@ -555,7 +555,24 @@ def _logout() -> int:
     return 0
 
 
+_USAGE = """\
+usage: mcp-openapix [OPTION]
+
+Serve the configured OpenAPI specs as MCP tools. With no option, run the server.
+
+options:
+  -h, --help      show this help and exit
+  -V, --version   print the version and exit
+  --check-config  validate config.json and every drop-in, and exit
+  --refresh       refresh every cached spec now, ignoring the interval, and exit
+  --logout        remove every cached token and exit
+"""
+
+
 def main() -> None:
+    if "--help" in sys.argv[1:] or "-h" in sys.argv[1:]:
+        print(_USAGE, end="")
+        return
     if "--version" in sys.argv[1:] or "-V" in sys.argv[1:]:
         print(f"mcp-openapix {version('mcp-openapix')}")
         return
